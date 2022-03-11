@@ -11,23 +11,13 @@ from numpy import interp
 from time import sleep
 import time
 
-from pygame import mixer
-mixer.init()
-
-
-
 keyboard = Controller()
 #================================================================================
 class Handdetector:
     def __init__(self,mode=False,max_hands=1,detection_con=0.7,track_confidence=0.5):
         """Used to detect the Hand position, it's Finger-Up state ,and \n To draw the Landmarks of the hand """
-        self.mode = mode
-        self.max_hands = max_hands
-        self.detection_con = detection_con
-        self.track_confidence = track_confidence
-        
         self.mpHands = mp.solutions.hands
-        self.hands = self.mpHands.Hands(self.mode ,self.max_hands,self.detection_con,self.track_confidence)
+        self.hands = self.mpHands.Hands(mode,max_hands,1,detection_con,track_confidence)
         self.mpdraw = mp.solutions.drawing_utils
         
         self.fingerup_list, self.lm_list = [], []
@@ -106,7 +96,6 @@ class Handdetector:
                 cv2.circle(img,(f2_x,f2_y),7,(0,53,102),cv2.FILLED)
             if draw_cntr:
                 cv2.circle(img,(cx,cy),8,(224,251,252),cv2.FILLED)
-
             dis = hypot(f2_x - f1_x,f2_y - f1_y)
             return dis, (cx, cy)
         if self.lm_list and self.fingerup_list:
@@ -115,7 +104,6 @@ class Handdetector:
                     distance, (cx, cy) = find()
                 else:
                     pass 
-                    #print("Keep finger up")
             else:
                 distance = find()
             return [distance , (cx, cy)]
@@ -140,50 +128,12 @@ def main():
             if hand_start_x < point_list[0] < hand_end_x and hand_start_y < point_list[1] < hand_end_y:
                 return True
             return False
-
         elif box==2:
             if start_x < point_list[0] < mid_x and start_y < point_list[1] < hand_start_y:
                 return 1
             elif mid_x < point_list[0] < end_x and start_y < point_list[1] < hand_start_y:
                 return 2
         return 0
-    #===========================================================================
-    def check_swipe_motion(finger_list=[]):
-        """Returns the swipe done by the Hand-detected either in +ve direction['pos'] or -ve direction['neg']"""
-        fing_len = len(finger_list)
-        swipe = None
-        if fing_len > 5:
-            [x1, y1] = finger_list[0]
-            [x2, y2] = finger_list[fing_len - 1]
-            #===========================
-            x = int(x2 - x1)
-            y = int(y2 -y1)
-            if x1 > x2: x *= -1
-            if y1 > y2: y *= -1
-            #===========================
-            if x < 30 and y > 100:
-                if y2 > y1 : swipe = 'pos'
-                else: swipe = 'neg'
-            #===========================
-            # if x > 100 and y < 30:
-            #     if x2 > x1 : swipe = 'right'
-            #     else: swipe = 'left'
-            return swipe
-    #===========================================================================
-    def Get_state_swipe(swipe):
-        """Returns the state of the Swipe-gesture, and the swipe if fingers are in same box"""
-        F1_box = check_in_fing(lm_list[8][1:],1)
-        F2_box = check_in_fing(lm_list[12][1:],1)
-        if F1_box == F2_box:
-            state = 'Quit' if F1_box == 1 else  'To-do'
-        else:
-            state = 'Swipe'
-        finger_pos_for_swipe.append(lm_list[12][1:])
-        if len(finger_pos_for_swipe) > 30:
-            finger_pos_for_swipe.pop(0)
-        if state in ['Quit', 'To-do']:
-            swipe = check_swipe_motion(finger_pos_for_swipe)
-        return state, swipe
     #===========================================================================
     def mouse_pointer_click(centre, dis, Clicked):
         """Clicks the Pointer at it's place when Index & Middle Fingers are too close to each-other. \n
@@ -212,10 +162,8 @@ def main():
     Thumb = Index_Finger = Middle_Finger = Ring_Finger = Pinky_Finger = 1
     sum_of_finger_state = 0
     finger_up_state = []
-    finger_pos_for_swipe = []
     prev_time, cur_time  =  0, 0        # Creating time counter to get the fps
     Quit_confirm = False
-    #===========================================================================
     #===========================================================================
     Font_type = cv2.FONT_HERSHEY_PLAIN
     Font_size = 1
@@ -240,7 +188,6 @@ def main():
         cur_time = time.time()
         Main_img = cv2.flip(cap_img,1)
         #======================================================================
-        swipe = ''
         state = ''
         Hand_Detection_check = False
         Main_img = Hand_detector.findhand(Main_img,True)
@@ -272,9 +219,7 @@ def main():
                         elif Index_finger_button_in == 2 and z == 1:
                             state += "arrow"
                             Controller_Mode = 1
-                            # print(state)
                 else:
-                    #==========================================================
                     [Thumb,Index_Finger,Middle_Finger,Ring_Finger,Pinky_Finger] = finger_up_state
                     sum_of_finger_state = sum(finger_up_state[1:])
                     #==========================================================
@@ -302,8 +247,7 @@ def main():
                         elif (Pinky_Finger and Pinky_Finger_in) and not(Thumb):
                             state = state + "Right "
                             H_dir = 1
-                    # print(H_dir, V_dir, Jump)
-
+                    #==========================================================
                     if Controller_Mode == 0:
                         if V_dir == 1:
                             px, py = lm_list[8][1:]                        
@@ -325,7 +269,7 @@ def main():
                                     state = "Click mouse"
                                     Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
                                     if Clicked == 2:click(pointer_x,pointer_y)
-
+                    #==========================================================
                     if Controller_Mode == 1:
                         if H_dir == 1: 
                             keyboard.press(Key.right)
@@ -335,7 +279,6 @@ def main():
                             keyboard.release(Key.right)
                             keyboard.release(Key.left)
                         
-
                         if V_dir == 1: 
                             keyboard.press(Key.up)
                         elif V_dir == -1: 
@@ -345,7 +288,6 @@ def main():
                             keyboard.release(Key.down)
 
                         # if Jump == 1: keyboard.press(Key.space)
-
         #======================================================================
         cv2.putText(Main_img,f'MOUSE',(start_x + 60,start_y + 30),Font_type,Font_size,Font_color,2)
         cv2.putText(Main_img,f'ARROW',(mid_x + 60,start_y + 30),Font_type,Font_size,Font_color,2)
@@ -369,7 +311,7 @@ def main():
         #======= Quiting the apk ==============================================
         if Quit_confirm:
             say('Quitting')
-            sleep(2)
+            sleep(1)
             break
 
 if __name__== '__main__':
