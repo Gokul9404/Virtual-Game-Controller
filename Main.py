@@ -133,6 +133,11 @@ def main():
                 return 1
             elif mid_x < point_list[0] < end_x and start_y < point_list[1] < hand_start_y:
                 return 2
+        
+        elif box==3 :
+            if (start_x-100) < point_list[0] < start_x and start_y < point_list[1] < hand_start_y:
+                return True
+            return False
         return 0
     #===========================================================================
     def mouse_pointer_click(centre, dis, Clicked):
@@ -180,7 +185,6 @@ def main():
     #===========================================================================
     say('Getting Camera')
     cap = cv2.VideoCapture(0)           # Creating Camera object
-    cam_width,cam_height = 640,480
     say('Camera connected')
     #==========================================================================
     while True:
@@ -217,7 +221,7 @@ def main():
                             Controller_Mode = 0
                             # print(state)
                         elif Index_finger_button_in == 2 and z == 1:
-                            state += "arrow"
+                            state += " arrow"
                             Controller_Mode = 1
                 else:
                     [Thumb,Index_Finger,Middle_Finger,Ring_Finger,Pinky_Finger] = finger_up_state
@@ -228,6 +232,10 @@ def main():
                     Middle_finger_in = check_in_fing(lm_list[12][1:],1)
                     Ring_Finger_in = check_in_fing(lm_list[16][1:],1)
                     Pinky_Finger_in = check_in_fing(lm_list[20][1:],1)
+
+                    Index_fing_qt = check_in_fing(lm_list[8][1:],3)
+                    Middle_fing_qt = check_in_fing(lm_list[12][1:],3)
+                    
                     if sum_of_finger_state == 0:
                         if Thumb_in and not(Thumb):
                             state = state + "Jump "
@@ -260,15 +268,15 @@ def main():
                             moveTo(int(pointer_x),int(pointer_y))
                         else:
                             [dis , centre ]= Hand_detector.findDistance(Main_img,1,2)
-                            if (sum_of_finger_state == 3) and (Index_Finger and Middle_Finger and Ring_Finger):
+                            if (Index_fing_qt and Middle_fing_qt) and sum_of_finger_state <= 3:
                                 state = "Quit Check"
                                 if centre and dis:
                                     Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
                                     if Clicked == 2: Quit_confirm = True
-                            elif V_dir == -1 and (centre and dis):
-                                    state = "Click mouse"
-                                    Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
-                                    if Clicked == 2:click(pointer_x,pointer_y)
+                            if V_dir == -1 and (centre and dis):
+                                state = "Click mouse"
+                                Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
+                                if Clicked == 2:click(pointer_x,pointer_y)                        
                     #==========================================================
                     if Controller_Mode == 1:
                         if H_dir == 1: 
@@ -287,7 +295,8 @@ def main():
                             keyboard.release(Key.up)
                             keyboard.release(Key.down)
 
-                        # if Jump == 1: keyboard.press(Key.space)
+                        if Jump == 1: keyboard.press(Key.space)
+                        else: keyboard.release(Key.space)
         #======================================================================
         cv2.putText(Main_img,f'MOUSE',(start_x + 60,start_y + 30),Font_type,Font_size,Font_color,2)
         cv2.putText(Main_img,f'ARROW',(mid_x + 60,start_y + 30),Font_type,Font_size,Font_color,2)
@@ -298,6 +307,9 @@ def main():
         
         cv2.putText(Main_img,f'DETECTION :- {Hand_Detection_check}',(40,20),Font_type,Font_size,Font_color,Font_thickness)
         cv2.putText(Main_img,f'STATE :-{state}',(250,20),Font_type,Font_size,Font_color,Font_thickness)
+        
+        cv2.putText(Main_img,f'QUIT',(start_x-65,start_y + 30),Font_type,Font_size,Font_color,2)
+        cv2.rectangle(Main_img,(start_x-100, start_y),(start_x, hand_start_y),(10,10,250),2)
         #======= Displaying the FPS of the CV Apk =============================
         fps = 1/(cur_time-prev_time)
         prev_time = cur_time
