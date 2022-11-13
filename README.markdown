@@ -18,13 +18,11 @@ A user can stimulate left, right, up, down and jump function in any game that ha
 
 ---
 ## Working Demo
-<img src="https://user-images.githubusercontent.com/71085729/201519512-d0fce66b-e866-453f-a100-ddc039d06887.gif" alt="Palm" width="640" height="400"><br>
+<img src="https://user-images.githubusercontent.com/71085729/201519512-d0fce66b-e866-453f-a100-ddc039d06887.gif" alt="Palm" width="640" height="400"> <br>
 Here, the user is playing [Space-Invaders](https://github.com/Gokul9404/Games-By-Python/tree/master/Space%20Invaders%20type-2) game using only the VR Controller.
 <!-- ![Project_11-13_Full HD 1080p_MEDIUM_FR24 (1)](https://user-images.githubusercontent.com/71085729/201519512-d0fce66b-e866-453f-a100-ddc039d06887.gif) -->
 
-
 ---
-
 ## Installation
 
 To setup the system for development on your local machine, please follow the instructions below:
