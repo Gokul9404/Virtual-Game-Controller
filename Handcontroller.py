@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 
 
-#================================================================================
 class Hand_Controller:
     def __init__(self,mode=False,max_hands=1,detection_con=0.7,track_confidence=0.5):
         """Used to detect the Hand position, it's Finger-Up state ,and \n To draw the Landmarks of the hand """
@@ -13,7 +12,8 @@ class Hand_Controller:
         self.hands = self.mpHands.Hands(mode,max_hands,1,detection_con,track_confidence)
         self.mpdraw = solutions.drawing_utils
         
-        self.fingerup_list, self.lm_list = [], []
+        self.fingerup_list = np.array([])
+        self.lm_list = []    
         self.tip_id = [4,8,12,16,20]
         self.close_tip_id = [5,6,10,14,18]
         self.hand_side = None
@@ -22,7 +22,7 @@ class Hand_Controller:
         #=== Getting the image in BGR format ====================================
         #=== Then flipping the image for better understanding ===================
         self.fliped_img = fliped_img
-        RGBimg = cvtColor(img,COLOR_BGR2RGB)
+        RGBimg = cvtColor(img,cv2.COLOR_BGR2RGB)
         if self.fliped_img:
             self.img = img  
         else:
@@ -38,36 +38,46 @@ class Hand_Controller:
         return img
     
     def findPosition(self,handno=0):
-        lm_list = [ ]
+        lm_list = []
         if self.result.multi_hand_landmarks:    
             given_hand = self.result.multi_hand_landmarks[handno]
             for id, lm in enumerate(given_hand.landmark):
-                    h ,w , c = self.img.shape
-                    cx, cy = int(lm.x*w),int(lm.y*h)
-                    lm_list.append([id,cx,cy])
+                h ,w , c = self.img.shape
+                cx, cy = int(lm.x*w),int(lm.y*h)
+                lm_list.append([id,cx,cy])
+                # lm_list = np.append(lm_list,np.array([[id,cx,cy]]))
         self.lm_list = lm_list
         return lm_list
 
     def fingersUp(self):
-        self.fingerup_list = []
-        if len(self.lm_list) != 0:
+        self.fingerup_list = np.array([])
+        if self.lm_list:
             #==== Checking whther left hand or right hand =======================
             #==== And then determining the Thumb state:- Open or Close ==========
             if self.lm_list[0][1] > self.lm_list[1][1]:
                 self.hand_side = 'right'
                 if self.lm_list[self.tip_id[0]][1] < self.lm_list[self.close_tip_id[0]][1]  :
-                    self.fingerup_list.append(1)
-                else: self.fingerup_list.append(0)
+                    self.fingerup_list = np.append(self.fingerup_list,[1])
+                    # self.fingerup_list.append(1)
+                else: 
+                    # self.fingerup_list.append(0)
+                    self.fingerup_list = np.append(self.fingerup_list,[0])
             else :
                 self.hand_side = 'left'
                 if self.lm_list[self.tip_id[0]][1] > self.lm_list[self.close_tip_id[0]][1]  :
-                    self.fingerup_list.append(1)
-                else: self.fingerup_list.append(0)
+                    self.fingerup_list = np.append(self.fingerup_list,[1])
+                    # self.fingerup_list.append(1)
+                else: 
+                    self.fingerup_list = np.append(self.fingerup_list,[0])
+                    # self.fingerup_list.append(0)
             #==== Checking the state of the Fingers:- Open or Close =============
             for id in range(1,5):
                 if self.lm_list[self.tip_id[id]][2] < self.lm_list[self.close_tip_id[id]][2]:
-                    self.fingerup_list.append(1)
-                else: self.fingerup_list.append(0)
+                    self.fingerup_list =  np.append(self.fingerup_list,[1])
+                    # self.fingerup_list.append(1)
+                else: 
+                    self.fingerup_list = np.append(self.fingerup_list,[0])
+                    # self.fingerup_list.append(0)
             #====================================================================
         return self.fingerup_list
     
@@ -91,7 +101,7 @@ class Hand_Controller:
                 circle(img,(cx,cy),8,(224,251,252),FILLED)
             dis = hypot(f2_x - f1_x,f2_y - f1_y)
             return dis, (cx, cy)
-        if self.lm_list and self.fingerup_list:
+        if (self.lm_list != []) and (self.fingerup_list.size != 0):
             if finger_up:
                 if (self.fingerup_list[F1] == self.fingerup_list[F2] == 1):
                     distance, (cx, cy) = find()
