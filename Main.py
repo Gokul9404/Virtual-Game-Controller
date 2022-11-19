@@ -2,16 +2,112 @@
 from pyautogui import click, moveTo, size
 from pynput.keyboard import Key, Controller
 import cv2
+import mediapipe as mp
 
 from win32com.client import Dispatch
 
+from math import hypot
 from numpy import interp
-from time import sleep
-import time
+from time import sleep, time
 
 from Handcontroller import Hand_Controller
 
 keyboard = Controller()
+#================================================================================
+class Handdetector:
+    def __init__(self,mode=False,max_hands=1,detection_con=0.7,track_confidence=0.5):
+        """Used to detect the Hand position, it's Finger-Up state ,and \n To draw the Landmarks of the hand """
+        self.mpHands = mp.solutions.hands
+        self.hands = self.mpHands.Hands(mode,max_hands,1,detection_con,track_confidence)
+        self.mpdraw = mp.solutions.drawing_utils
+        
+        self.fingerup_list, self.lm_list = [], []
+        self.tip_id = [4,8,12,16,20]
+        self.close_tip_id = [5,6,10,14,18]
+        self.hand_side = None
+
+    def findhand(self,img,draw=False,fliped_img=True):
+        #=== Getting the image in BGR format ====================================
+        #=== Then flipping the image for better understanding ===================
+        self.fliped_img = fliped_img
+        RGBimg = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        if self.fliped_img:
+            self.img = img  
+        else:
+            self.img =  cv2.flip(img,1)
+            RGBimg = cv2.flip(RGBimg,1)
+        #=== Processing the Hand position and ===================================
+        self.result = self.hands.process(RGBimg)
+        #=== Drawing the Landmarks of the Hand, if given draw ===================
+        if self.result.multi_hand_landmarks:        
+            for handlms in self.result.multi_hand_landmarks:
+                if draw:
+                    self.mpdraw.draw_landmarks(img,handlms,self.mpHands.HAND_CONNECTIONS)
+        return img
+    
+    def findPosition(self,handno=0):
+        lm_list = [ ]
+        if self.result.multi_hand_landmarks:    
+            given_hand = self.result.multi_hand_landmarks[handno]
+            for id, lm in enumerate(given_hand.landmark):
+                    h ,w , c = self.img.shape
+                    cx, cy = int(lm.x*w),int(lm.y*h)
+                    lm_list.append([id,cx,cy])
+        self.lm_list = lm_list
+        return lm_list
+
+    def fingersUp(self):
+        self.fingerup_list = []
+        if len(self.lm_list) != 0:
+            #==== Checking whther left hand or right hand =======================
+            #==== And then determining the Thumb state:- Open or Close ==========
+            if self.lm_list[0][1] > self.lm_list[1][1]:
+                self.hand_side = 'right'
+                if self.lm_list[self.tip_id[0]][1] < self.lm_list[self.close_tip_id[0]][1]  :
+                    self.fingerup_list.append(1)
+                else: self.fingerup_list.append(0)
+            else :
+                self.hand_side = 'left'
+                if self.lm_list[self.tip_id[0]][1] > self.lm_list[self.close_tip_id[0]][1]  :
+                    self.fingerup_list.append(1)
+                else: self.fingerup_list.append(0)
+            #==== Checking the state of the Fingers:- Open or Close =============
+            for id in range(1,5):
+                if self.lm_list[self.tip_id[id]][2] < self.lm_list[self.close_tip_id[id]][2]:
+                    self.fingerup_list.append(1)
+                else: self.fingerup_list.append(0)
+            #====================================================================
+        return self.fingerup_list
+    
+    def findDistance(self,img,F1,F2,draw_f=True,draw_line=True,draw_cntr=False,finger_up=True):
+        f1 = self.tip_id[F1]
+        f2 = self.tip_id[F2]
+        distance = 0
+        cx, cy = 0 ,0
+        def find():
+            f1_x,f1_y = self.lm_list[f1][1:]
+            f2_x,f2_y = self.lm_list[f2][1:]
+            cx,cy = (f1_x+f2_x)//2, (f1_y+f2_y)//2 
+            if draw_line:
+                cv2.line(img,(f1_x,f1_y),(f2_x,f2_y),(61,90,128),4)
+            if draw_f:
+                cv2.circle(img,(f1_x,f1_y),10,(0,29,62),cv2.FILLED)
+                cv2.circle(img,(f1_x,f1_y),7,(0,53,102),cv2.FILLED)
+                cv2.circle(img,(f2_x,f2_y),10,(0,29,62),cv2.FILLED)
+                cv2.circle(img,(f2_x,f2_y),7,(0,53,102),cv2.FILLED)
+            if draw_cntr:
+                cv2.circle(img,(cx,cy),8,(224,251,252),cv2.FILLED)
+            dis = hypot(f2_x - f1_x,f2_y - f1_y)
+            return dis, (cx, cy)
+        if self.lm_list and self.fingerup_list:
+            if finger_up:
+                if (self.fingerup_list[F1] == self.fingerup_list[F2] == 1):
+                    distance, (cx, cy) = find()
+                else:
+                    pass 
+            else:
+                distance = find()
+            return [distance , (cx, cy)]
 #=============== Machine Voice ==================================================
 voice_engine = Dispatch('SAPI.Spvoice')
 
@@ -94,7 +190,7 @@ def main():
     #==========================================================================
     while True:
         _ , cap_img = cap.read()
-        cur_time = time.time()
+        cur_time = time()
         Main_img = cv2.flip(cap_img,1)
         #======================================================================
         state = ''
@@ -104,17 +200,23 @@ def main():
         #======================================================================
         V_dir, H_dir, Jump = 0, 0, 0
         #======================================================================
+        # print(lm_list)
         if lm_list:
             finger_up_state = Hand_detector.fingersUp()
             Hand_Detection_check = True
+            Index_pos = lm_list[8][1:]
+            Middle_pos = lm_list[12][1:]
+            Ring_pos = lm_list[16][1:]
+            Pinky_pos = lm_list[20][1:]
+            Thumb_pos = lm_list[4][1:]
             #=============== Checking & Changing finger's State ===============
-            if finger_up_state:
-                Index_finger_button_in = check_in_fing(lm_list[8][1:])
-                Middle_finger_button_in = check_in_fing(lm_list[12][1:])
+            if finger_up_state.size != 0 :
+                Index_finger_button_in = check_in_fing(Index_pos)
+                Middle_finger_button_in = check_in_fing()
                 #==============================================================
                 if Index_finger_button_in or Middle_finger_button_in:
-                    Index_finger_button_in = check_in_fing(lm_list[8][1:],2)
-                    Middle_finger_button_in = check_in_fing(lm_list[12][1:],2)
+                    Index_finger_button_in = check_in_fing(Index_pos,2)
+                    Middle_finger_button_in = check_in_fing(Middle_pos,2)
                     if Index_finger_button_in == Middle_finger_button_in:
                         z = 0
                         [dis , centre ]= Hand_detector.findDistance(Main_img,1,2)
@@ -132,14 +234,14 @@ def main():
                     [Thumb,Index_Finger,Middle_Finger,Ring_Finger,Pinky_Finger] = finger_up_state
                     sum_of_finger_state = sum(finger_up_state[1:])
                     #==========================================================
-                    Thumb_in = check_in_fing(lm_list[4][1:],1)
-                    Index_finger_in = check_in_fing(lm_list[8][1:],1)
-                    Middle_finger_in = check_in_fing(lm_list[12][1:],1)
-                    Ring_Finger_in = check_in_fing(lm_list[16][1:],1)
-                    Pinky_Finger_in = check_in_fing(lm_list[20][1:],1)
+                    Thumb_in = check_in_fing(Thumb_pos,1)
+                    Index_finger_in = check_in_fing(Index_pos,1)
+                    Middle_finger_in = check_in_fing(Middle_pos,1)
+                    Ring_Finger_in = check_in_fing(Ring_pos,1)
+                    Pinky_Finger_in = check_in_fing(Pinky_pos,1)
 
-                    Index_fing_qt = check_in_fing(lm_list[8][1:],3)
-                    Middle_fing_qt = check_in_fing(lm_list[12][1:],3)
+                    Index_fing_qt = check_in_fing(Index_pos,3)
+                    Middle_fing_qt = check_in_fing(Middle_pos,3)
                     
                     if sum_of_finger_state == 0:
                         if Thumb_in and not(Thumb):
