@@ -1,6 +1,6 @@
 from math import hypot
 from mediapipe import solutions
-from cv2 import line, circle, cvtColor, flip, FILLED, COLOR_BGR2RGB
+from cv2 import line, circle, cvtColor, flip, FILLED
 import cv2
 import numpy as np
 
