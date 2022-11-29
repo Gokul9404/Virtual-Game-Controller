@@ -2,11 +2,9 @@
 from pyautogui import click, moveTo, size
 from pynput.keyboard import Key, Controller
 import cv2
-import mediapipe as mp
 
 from win32com.client import Dispatch
 
-from math import hypot
 from numpy import interp
 from time import sleep, time
 
@@ -25,16 +23,26 @@ say('Machine Voice connected')
 #=============== Main Program ===================================================
 def main():
     def check_in_fing(point_list=[0,0],box=0):
-        """If finger is in box zero, it returns True; else False. \n
-           If given box=1, then it returns the box_no on which the finger is."""
+        """
+        Args:
+            point_list (list, optional): finger position on the image. (Defaults to [0,0])
+            box (int, optional): It describes which box value has to be returned(Defaults to 0.)
+        
+        box = 0: Returns, is finger in the detection box.
+        box = 1: Returns, is finger only in the gesture box.
+        box = 2: Returns, on which state box fingeris inn.
+        box = 3: Returns, is finger on the qutting button box.
+        """
         if box==0:
             if start_x < point_list[0] < end_x and start_y < point_list[1] < hand_start_y:
                 return True
             return False
+
         if box==1:
             if hand_start_x < point_list[0] < hand_end_x and hand_start_y < point_list[1] < hand_end_y:
                 return True
             return False
+
         elif box==2:
             if start_x < point_list[0] < mid_x and start_y < point_list[1] < hand_start_y:
                 return 1
@@ -48,22 +56,21 @@ def main():
         return 0
     #===========================================================================
     def mouse_pointer_click(centre, dis, Clicked):
-        """Clicks the Pointer at it's place when Index & Middle Fingers are too close to each-other. \n
-        Returns Clicked & state values."""
+        """
+        Clicks the Pointer at it's place when Index & Middle Fingers are too close to each-other. \n
+        Returns Clicked state.
+        """
         cx,cy = centre
-        Mouse_state = 0
         cv2.circle(Main_img,(cx,cy),15,(181,181,181),cv2.FILLED)   
         if Clicked >= 1: Clicked = 0
 
         if dis < 30:
             cv2.circle(Main_img,(cx,cy),15,(0,252,51),cv2.FILLED)
-            if Clicked==0:
-                Mouse_state = Clicked = 1
-        elif dis > 55:
-            Mouse_state = 0
+            if Clicked==0: Clicked = 1
+
         if Clicked == 1:
             Clicked += 1
-        return Clicked, Mouse_state
+        return Clicked
     #===========================================================================
     say('Getting Hand dectector')
     Hand_detector = Hand_Controller()      # Creating hand-Detector 
@@ -127,7 +134,7 @@ def main():
                         z = 0
                         [dis , centre ]= Hand_detector.findDistance(Main_img,1,2)
                         if centre and dis:
-                            Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
+                            Clicked = mouse_pointer_click(centre,dis,Clicked)
                             if Clicked == 2: z = 1
                         if Index_finger_button_in == 1 and z == 1 :
                             state += " asdf"
@@ -184,11 +191,11 @@ def main():
                             if (Index_fing_qt and Middle_fing_qt) and sum_of_finger_state <= 3:
                                 state = "Quit Check"
                                 if centre and dis:
-                                    Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
+                                    Clicked = mouse_pointer_click(centre,dis,Clicked)
                                     if Clicked == 2: Quit_confirm = True
                             if V_dir == -1 and (centre and dis):
                                 state = "Click mouse"
-                                Clicked, _ = mouse_pointer_click(centre,dis,Clicked)
+                                Clicked = mouse_pointer_click(centre,dis,Clicked)
                                 if Clicked == 2:click(pointer_x,pointer_y)                        
                     #==========================================================
                     if Controller_Mode == 1:
