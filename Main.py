@@ -1,9 +1,10 @@
 #===== Importing Required Modules ==========================================
-from pyautogui import click, moveTo, size
+from pyautogui import click, moveTo
 from pynput.keyboard import Key, Controller
 import cv2
 
 from win32com.client import Dispatch
+from win32api import GetSystemMetrics
 
 from numpy import interp
 from time import sleep, time
@@ -106,7 +107,7 @@ def main():
     start_x, start_y, end_x, end_y = 225, 50, 575, 400
     hand_start_x, hand_start_y, hand_end_x, hand_end_y = 225, 100, 575, 400
     mid_x = (start_x + end_x)//2
-    scrn_width, scrn_height = size()
+    scrn_width, scrn_height = GetSystemMetrics(0), GetSystemMetrics(1)
     #===========================================================================
     say('Getting Camera')
     cap = cv2.VideoCapture(0)           # Initialising Camera object
