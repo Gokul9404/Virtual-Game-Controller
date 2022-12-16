@@ -1,6 +1,8 @@
 #===== Importing Required Modules ==========================================
-from pyautogui import click, moveTo
-from pynput.keyboard import Key, Controller
+from pynput.keyboard import Controller as kc
+from pynput.keyboard import Key
+from pynput.mouse import Controller as mc
+from pynput.mouse import Button
 import cv2
 
 from win32com.client import Dispatch
@@ -11,7 +13,8 @@ from time import sleep, time
 
 from Handcontroller import Hand_Controller
 
-keyboard = Controller()
+keyboard = kc()
+mouse  = mc()
 #================================================================================
 #=============== Machine Voice ==================================================
 voice_engine = Dispatch('SAPI.Spvoice')
@@ -102,6 +105,7 @@ def main():
     # Mouse pointer cordinate variable
     pointer_x, pointer_y = 0, 0
     Clicked = 0
+    clk = 0
     #===========================================================================
     # Setting up the dimension & co-ordinate for the image-frame to recoginize the gesture
     start_x, start_y, end_x, end_y = 225, 50, 575, 400
@@ -111,6 +115,9 @@ def main():
     #===========================================================================
     say('Getting Camera')
     cap = cv2.VideoCapture(0)           # Initialising Camera object
+    cam_width,cam_height = 960,720      # And setiing up it's
+    cap.set(3,cam_width)                # Width and Height
+    cap.set(4,cam_height)               # According to ourself
     say('Camera connected')
     #==========================================================================
     while True:
@@ -131,10 +138,8 @@ def main():
         # If hand is detected then do some works; else pass
         if lm_list:
             Hand_Detection_check = True         # Set detection->true for further refernce
-            
             # Get the state of each finger; whether they are open or closed
             finger_up_state = Hand_detector.fingersUp()
-
             # getting each fingers coordinate list; such that they don't need to be fetched multiple times
             Index_pos = lm_list[8][1:]
             Middle_pos = lm_list[12][1:]
@@ -170,7 +175,6 @@ def main():
                             """if fingers are in box 1 set controller_mode to 0 i.e. Arrow Controls"""
                             state += " asdf"
                             Controller_Mode = 0
-                            # print(state)
                         elif Index_finger_button_in == 2 and z == 1:
                             """if fingers are in box 2 set controller_mode to 1 i.e. Mouse Controls"""
                             state += " arrow"
@@ -228,7 +232,7 @@ def main():
                             state = "Mouse Pointer"
                             cv2.circle(Main_img,(px,py),5,(200,200,200),cv2.FILLED)
                             cv2.circle(Main_img,(px,py),10,(200,200,200),3)
-                            moveTo(int(pointer_x),int(pointer_y))
+                            mouse.position = (int(pointer_x),int(pointer_y))
                         else:
                             # IF vertical direction is not +ve then left-click or quit-check wil happen
                             [dis , centre ]= Hand_detector.findDistance(Main_img,1,2)
@@ -242,7 +246,12 @@ def main():
                                 """If vertial direction is -ve then check for mouse left-click"""
                                 state = "Click mouse"
                                 Clicked = mouse_pointer_click(centre,dis,Clicked)
-                                if Clicked == 2:click(pointer_x,pointer_y)                        
+                                if Clicked == 2:
+                                    if(clk == 0):
+                                        mouse.position = (int(pointer_x),int(pointer_y))
+                                        mouse.click(Button.left)   
+                                        clk+=1
+                                    else: clk -=1                    
                     #==========================================================
                     if Controller_Mode == 1:
                         """Controller mode -> 1; is Keys control mode
