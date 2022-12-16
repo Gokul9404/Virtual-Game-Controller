@@ -12,8 +12,7 @@ A user can stimulate left, right, up, down and jump function in any game that ha
 * ```openCV``` -(For image processing and drawing)
 * ```mediapipe``` -(For Hand Tracking)
 * ```numpy``` -(For Mouse Movement and positon)
-* ```pyautogui``` -(For controlling the mouse movement and click)
-* ```pynput``` -(For keys input)
+* ```pynput``` -(For keys input controlling the mouse movement and click)
 
 
 ---
