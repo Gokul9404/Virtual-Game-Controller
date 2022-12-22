@@ -1,7 +1,6 @@
 from math import hypot
 from mediapipe import solutions
 from cv2 import line, circle, cvtColor, flip, FILLED, COLOR_BGR2RGB
-import cv2
 import numpy as np
 
 
@@ -42,7 +41,7 @@ class Hand_Controller:
         #=== Getting the image in BGR format ====================================
         #=== Then flipping the image for better understanding ===================
         self.fliped_img = fliped_img
-        RGBimg = cvtColor(img,cv2.COLOR_BGR2RGB)
+        RGBimg = cvtColor(img,COLOR_BGR2RGB)
         if self.fliped_img:
             self.img = img  
         else:
